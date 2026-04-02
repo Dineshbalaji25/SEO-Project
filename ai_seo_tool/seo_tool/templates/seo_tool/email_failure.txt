@@ -1,0 +1,8 @@
+SEO Update Failed
+
+We encountered an error updating SEO for '{{ product_name }}'.
+
+Error:
+{{ error_message }}
+
+Please try again or contact support.

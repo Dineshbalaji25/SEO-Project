@@ -1,0 +1,10 @@
+SEO Update Successful!
+
+Product: {{ product_name }}
+Generated Title: {{ seo_title }}
+Meta Description: {{ meta_description }}
+
+View in Admin: {{ admin_url }}
+
+Full Description:
+{{ seo_description }}

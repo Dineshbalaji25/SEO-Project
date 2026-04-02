@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Product SEO — thotfy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Instrument+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0c0c0b;
+      --surface:  #141413;
+      --card:     #1c1c1a;
+      --border:   rgba(255,255,255,.08);
+      --border-h: rgba(255,255,255,.15);
+      --text:     #f0ede6;
+      --muted:    #7a7870;
+      --accent:   #c8f550;
+      --accent-d: #a8d030;
+      --red:      #ff5f5f;
+      --radius:   12px;
+      --radius-lg:18px;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'Instrument Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 2rem 1rem;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .shell {
+      width: 100%;
+      max-width: 640px;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    .headline {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.75rem, 5vw, 2.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: .75rem;
+    }
+    .headline em {
+      font-style: italic;
+      font-family: 'Instrument Sans', sans-serif;
+      font-weight: 400;
+      color: var(--accent);
+    }
+
+    .sub {
+      font-size: .9375rem;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── Steps indicator ─────────────────────────────────── */
+    .steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 2rem;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .8125rem;
+      color: var(--muted);
+      font-family: 'Syne', sans-serif;
+      font-weight: 500;
+    }
+    .step.active { color: var(--text); }
+    .step.done   { color: var(--accent); }
+    .step-num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem;
+      flex-shrink: 0;
+    }
+    .step.done .step-num  { background: var(--accent); color: #0c0c0b; border-color: var(--accent); }
+    .step.active .step-num{ background: rgba(200,245,80,.1); border-color: var(--accent); color: var(--accent); }
+    .step-line { flex: 1; height: 1px; background: var(--border); margin: 0 12px; }
+
+    /* ── Cards ───────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      margin-bottom: 1rem;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: var(--border-h); }
+
+    /* ── Upload zone ─────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      transition: border-color .2s, background .2s;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(200,245,80,.04); }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .upload-icon { font-size: 2.25rem; margin-bottom: .75rem; line-height: 1; }
+    .upload-primary { font-family: 'Syne', sans-serif; font-weight: 600; font-size: .9375rem; }
+    .upload-primary span { color: var(--accent); }
+    .upload-hint { font-size: .8rem; color: var(--muted); margin-top: 5px; }
+
+    #preview-wrap {
+      display: none;
+      margin-top: 1.25rem;
+      position: relative;
+    }
+    #preview-wrap img {
+      width: 100%;
+      max-height: 240px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .preview-clear {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,.6);
+      border: none; border-radius: 50%;
+      width: 28px; height: 28px;
+      color: #fff; cursor: pointer;
+      font-size: 1rem; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Form inputs ─────────────────────────────────────── */
+    .field { margin-bottom: 1.125rem; }
+    label {
+      display: block;
+      font-size: .8rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 500;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input[type="text"], input[type="email"] {
+      width: 100%;
+      padding: 11px 14px;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: .9375rem;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(200,245,80,.1);
+    }
+    input::placeholder { color: var(--muted); }
+    .field-hint { font-size: .775rem; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+    /* ── SEO preview panel ───────────────────────────────── */
+    #seo-preview {
+      display: none;
+      animation: fadeUp .35s ease both;
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .preview-header h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .badge-ai {
+      font-size: .7rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: rgba(200,245,80,.12);
+      color: var(--accent);
+      border: 1px solid rgba(200,245,80,.25);
+      border-radius: 99px;
+      padding: 3px 10px;
+    }
+
+    .seo-field {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: .75rem;
+    }
+    .seo-field-label {
+      font-size: .7rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .char-count { color: var(--accent); font-variant-numeric: tabular-nums; }
+    .seo-field-value {
+      font-size: .9375rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .seo-field-value.title { font-weight: 500; font-family: 'Syne', sans-serif; }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      font-family: 'Syne', sans-serif;
+      font-size: .9375rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-accent {
+      background: var(--accent);
+      color: #0c0c0b;
+    }
+    .btn-accent:hover { background: var(--accent-d); }
+    .btn-accent:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-top: .75rem;
+    }
+    .btn-outline:hover { border-color: var(--border-h); color: var(--text); }
+
+    /* ── Spinner + state overlay ─────────────────────────── */
+    .generating {
+      display: none;
+      text-align: center;
+      padding: 2rem 0 1rem;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 2.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .gen-label { font-size: .9rem; color: var(--muted); }
+    .gen-sublabel { font-size: .8rem; color: var(--muted); margin-top: 4px; opacity: .7; }
+
+    /* ── Success / error states ──────────────────────────── */
+    #status-panel { display: none; text-align: center; padding: 1.5rem 0; }
+    .status-icon { font-size: 2.75rem; margin-bottom: 1rem; }
+    #status-panel h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+    #status-panel p { font-size: .9rem; color: var(--muted); line-height: 1.6; }
+    .status-link {
+      display: inline-block;
+      margin-top: 1.25rem;
+      padding: 10px 22px;
+      background: var(--accent);
+      color: #0c0c0b;
+      text-decoration: none;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: .875rem;
+    }
+
+    /* ── Error message ───────────────────────────────────── */
+    .error-msg {
+      display: none;
+      background: rgba(255,95,95,.08);
+      border: 1px solid rgba(255,95,95,.25);
+      border-radius: 8px;
+      padding: .75rem 1rem;
+      font-size: .875rem;
+      color: var(--red);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 1.25rem; }
+      .headline { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="logo">
+    <div class="logo-dot"></div>
+    thotfy — AI SEO Generator
+  </div>
+
+  <h1 class="headline">Turn your product image<br>into <em>SEO-ready copy</em></h1>
+  <p class="sub">
+    Upload a photo, let Claude analyse it, review the generated content,
+    then push it straight to your product on thotfy.com.
+  </p>
+
+  <!-- Steps -->
+  <div class="steps" id="steps-bar">
+    <div class="step active" id="step1">
+      <div class="step-num">1</div>
+      Upload &amp; Generate
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step2">
+      <div class="step-num">2</div>
+      Review &amp; Submit
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step3">
+      <div class="step-num">3</div>
+      Done
+    </div>
+  </div>
+
+  <!-- Error banner -->
+  <div class="error-msg" id="error-msg"></div>
+
+  <!-- ── STEP 1: Upload ─────────────────────────────────── -->
+  <div id="panel-upload">
+    <div class="card">
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp">
+        <div class="upload-icon">📸</div>
+        <p class="upload-primary"><span>Click to upload</span> or drag &amp; drop</p>
+        <p class="upload-hint">JPG · PNG · WebP — max 8 MB</p>
+      </div>
+
+      <div id="preview-wrap">
+        <img id="preview-img" src="" alt="preview">
+        <button class="preview-clear" id="clear-btn" title="Remove">✕</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label for="hint-name">Product name <span style="color:var(--muted);font-weight:400;text-transform:none">(helps Claude write better copy)</span></label>
+        <input type="text" id="hint-name" placeholder="e.g. Handcrafted Ceramic Mug">
+        <p class="field-hint">Optional — the more specific, the better the SEO output.</p>
+      </div>
+    </div>
+
+    <div class="generating" id="generating">
+      <div class="spinner"></div>
+      <p class="gen-label" id="gen-label">Analysing your product image…</p>
+      <p class="gen-sublabel">Claude Vision is reading your photo</p>
+    </div>
+
+    <button class="btn btn-accent" id="btn-generate" disabled>
+      Generate SEO Content →
+    </button>
+  </div>
+
+  <!-- ── STEP 2: Review + Submit ────────────────────────── -->
+  <div id="panel-submit" style="display:none">
+
+    <!-- SEO Preview -->
+    <div class="card" id="seo-preview">
+      <div class="preview-header">
+        <h3>Generated SEO Content</h3>
+        <span class="badge-ai">Claude Vision</span>
+      </div>
+
+      <div class="seo-field">
+        <div class="seo-field-label">
+          SEO Title
+          <span class="char-count" id="ct-title">0 chars</span>
+        </div>
+        <div class="seo-field-value title" id="val-title"></div>
+      </div>
+
+      <div class="seo-field">
+        <div class="seo-field-label">Product Description</div>
+        <div class="seo-field-value" id="val-desc" style="font-size:.875rem;color:var(--muted)"></div>
+      </div>
+
+      <div class="seo-field">
+        <div class="seo-field-label">
+          Meta Description
+          <span class="char-count" id="ct-meta">0 chars</span>
+        </div>
+        <div class="seo-field-value" id="val-meta" style="font-size:.875rem"></div>
+      </div>
+    </div>
+
+    <!-- Partner details form -->
+    <div class="card">
+      <div class="field">
+        <label for="partner-name">Your partner name on thotfy.com</label>
+        <input type="text" id="partner-name" placeholder="e.g. Artisan Collective">
+        <p class="field-hint">Exact name as registered in your thotfy partner account.</p>
+      </div>
+      <div class="field">
+        <label for="product-name">Product name on thotfy.com</label>
+        <input type="text" id="product-name" placeholder="e.g. Handcrafted Ceramic Mug">
+        <p class="field-hint">Must match the product title in your thotfy catalogue.</p>
+      </div>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@example.com">
+        <p class="field-hint">We'll email you when thotfy.com has been updated.</p>
+      </div>
+    </div>
+
+    <button class="btn btn-accent" id="btn-submit">
+      Push to thotfy.com →
+    </button>
+    <button class="btn btn-outline" id="btn-back">
+      ← Re-upload image
+    </button>
+  </div>
+
+  <!-- ── STEP 3: Processing / Done ─────────────────────── -->
+  <div id="panel-status" style="display:none">
+    <div class="card">
+      <div id="status-panel">
+        <div class="spinner" id="status-spinner"></div>
+        <h3 id="status-headline">Updating thotfy.com…</h3>
+        <p id="status-sub">
+          We're writing your SEO content to the product catalogue.
+          This usually takes under 30 seconds.
+        </p>
+        <div id="status-result" style="display:none; margin-top:1.5rem"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let sessionToken = null;
+let taskId       = null;
+let pollTimer    = null;
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const fileInput    = document.getElementById('file-input');
+const uploadZone   = document.getElementById('upload-zone');
+const previewWrap  = document.getElementById('preview-wrap');
+const previewImg   = document.getElementById('preview-img');
+const clearBtn     = document.getElementById('clear-btn');
+const btnGenerate  = document.getElementById('btn-generate');
+const generating   = document.getElementById('generating');
+const genLabel     = document.getElementById('gen-label');
+const panelUpload  = document.getElementById('panel-upload');
+const panelSubmit  = document.getElementById('panel-submit');
+const panelStatus  = document.getElementById('panel-status');
+const seoPreview   = document.getElementById('seo-preview');
+const btnSubmit    = document.getElementById('btn-submit');
+const btnBack      = document.getElementById('btn-back');
+const errorMsg     = document.getElementById('error-msg');
+const step1        = document.getElementById('step1');
+const step2        = document.getElementById('step2');
+const step3        = document.getElementById('step3');
+
+// ── Image upload ──────────────────────────────────────────────────────────────
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    previewWrap.style.display = 'block';
+    btnGenerate.disabled = false;
+  };
+  reader.readAsDataURL(f);
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  const dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files;
+  fileInput.dispatchEvent(new Event('change'));
+});
+
+clearBtn.addEventListener('click', () => {
+  fileInput.value = '';
+  previewWrap.style.display = 'none';
+  btnGenerate.disabled = true;
+});
+
+// ── Rotating labels while generating ─────────────────────────────────────────
+const GEN_LABELS = [
+  'Analysing your product image…',
+  'Identifying key features…',
+  'Crafting the SEO title…',
+  'Writing the description…',
+  'Polishing the meta description…',
+];
+let labelIdx = 0, labelTimer = null;
+function startLabelRotation() {
+  labelIdx = 0; genLabel.textContent = GEN_LABELS[0];
+  labelTimer = setInterval(() => {
+    labelIdx = (labelIdx + 1) % GEN_LABELS.length;
+    genLabel.textContent = GEN_LABELS[labelIdx];
+  }, 2800);
+}
+function stopLabelRotation() { clearInterval(labelTimer); }
+
+// ── Step 1 → Generate ────────────────────────────────────────────────────────
+btnGenerate.addEventListener('click', async () => {
+  hideError();
+  const file = fileInput.files[0];
+  if (!file) { showError('Please upload a product image first.'); return; }
+
+  btnGenerate.disabled = true;
+  generating.style.display = 'block';
+  startLabelRotation();
+
+  const fd = new FormData();
+  fd.append('product_image', file);
+  const hint = document.getElementById('hint-name').value.trim();
+  if (hint) fd.append('product_name_hint', hint);
+
+  // CSRF
+  const csrf = getCookie('csrftoken');
+
+  try {
+    const res  = await fetch('/', { method:'POST', headers:{'X-CSRFToken': csrf}, body: fd });
+    const data = await res.json();
+
+    if (!res.ok) { throw new Error(data.error || 'Failed to generate SEO content.'); }
+
+    sessionToken = data.token;
+    populateSEOPreview(data);
+    goToStep2();
+
+  } catch (e) {
+    showError(e.message);
+    btnGenerate.disabled = false;
+  } finally {
+    generating.style.display = 'none';
+    stopLabelRotation();
+  }
+});
+
+// ── Populate preview ──────────────────────────────────────────────────────────
+function populateSEOPreview(data) {
+  document.getElementById('val-title').textContent = data.seo_title;
+  document.getElementById('val-desc').textContent  = data.seo_description;
+  document.getElementById('val-meta').textContent  = data.meta_description;
+  document.getElementById('ct-title').textContent  = data.seo_title.length + ' chars';
+  document.getElementById('ct-meta').textContent   = data.meta_description.length + ' chars';
+  seoPreview.style.display = 'block';
+
+  // Pre-fill product name if hint was given
+  const hint = document.getElementById('hint-name').value.trim();
+  if (hint) document.getElementById('product-name').value = hint;
+}
+
+// ── Step 2 → Submit ───────────────────────────────────────────────────────────
+btnSubmit.addEventListener('click', async () => {
+  hideError();
+  const partnerName = document.getElementById('partner-name').value.trim();
+  const productName = document.getElementById('product-name').value.trim();
+  const email       = document.getElementById('email').value.trim();
+
+  if (!partnerName) { showError('Please enter your partner name.'); return; }
+  if (!productName) { showError('Please enter the product name.'); return; }
+  if (!email || !email.includes('@')) { showError('Please enter a valid email address.'); return; }
+  if (!sessionToken) { showError('Session expired — please re-upload your image.'); return; }
+
+  btnSubmit.disabled = true;
+  btnSubmit.textContent = 'Queuing job…';
+
+  const fd = new FormData();
+  fd.append('token',        sessionToken);
+  fd.append('partner_name', partnerName);
+  fd.append('product_name', productName);
+  fd.append('email',        email);
+
+  const csrf = getCookie('csrftoken');
+
+  try {
+    const res  = await fetch('/submit/', { method:'POST', headers:{'X-CSRFToken': csrf}, body: fd });
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msgs = Object.values(data.errors || {}).flat();
+      throw new Error(msgs.join(' ') || 'Submission failed.');
+    }
+
+    taskId = data.task_id;
+    goToStep3();
+    startPolling();
+
+  } catch (e) {
+    showError(e.message);
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = 'Push to thotfy.com →';
+  }
+});
+
+// ── Back button ───────────────────────────────────────────────────────────────
+btnBack.addEventListener('click', () => {
+  sessionToken = null;
+  fileInput.value = '';
+  previewWrap.style.display = 'none';
+  btnGenerate.disabled = true;
+  document.getElementById('hint-name').value = '';
+  hideError();
+  goToStep1();
+});
+
+// ── Polling ───────────────────────────────────────────────────────────────────
+const POLL_LABELS = [
+  'Pushing SEO fields to thotfy.com…',
+  'Updating your product catalogue…',
+  'Almost there…',
+];
+let pollLabelIdx = 0;
+
+function startPolling() {
+  pollLabelIdx = 0;
+  pollTimer = setInterval(async () => {
+    // Rotate status label
+    pollLabelIdx = (pollLabelIdx + 1) % POLL_LABELS.length;
+    document.getElementById('status-headline').textContent = POLL_LABELS[pollLabelIdx];
+
+    try {
+      const res  = await fetch(`/status/${taskId}/`);
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        clearInterval(pollTimer);
+        showSuccess(data);
+      } else if (data.status === 'failed') {
+        clearInterval(pollTimer);
+        showFailed(data.error);
+      }
+    } catch (e) { /* network blip — keep polling */ }
+  }, 3000);
+}
+
+function showSuccess(data) {
+  const spinner  = document.getElementById('status-spinner');
+  const headline = document.getElementById('status-headline');
+  const sub      = document.getElementById('status-sub');
+  const result   = document.getElementById('status-result');
+
+  spinner.style.display = 'none';
+  headline.textContent  = '🎉 thotfy.com updated!';
+  sub.textContent       = 'Your product SEO content is now live. Check your email for a full summary.';
+
+  let html = '';
+  if (data.seo_title) {
+    html += `<div style="margin-bottom:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.875rem 1rem;text-align:left">
+      <div style="font-size:.7rem;font-family:Syne,sans-serif;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">SEO Title</div>
+      <div style="font-size:.9rem;color:var(--text)">${escHtml(data.seo_title)}</div>
+    </div>`;
+  }
+  if (data.meta_description) {
+    html += `<div style="margin-bottom:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.875rem 1rem;text-align:left">
+      <div style="font-size:.7rem;font-family:Syne,sans-serif;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Meta Description</div>
+      <div style="font-size:.875rem;color:var(--muted)">${escHtml(data.meta_description)}</div>
+    </div>`;
+  }
+  if (data.admin_url) {
+    html += `<a href="${escHtml(data.admin_url)}" target="_blank" rel="noopener" class="status-link">View in thotfy admin →</a>`;
+  }
+  result.innerHTML = html;
+  result.style.display = 'block';
+
+  step3.classList.add('active', 'done');
+}
+
+function showFailed(error) {
+  const spinner  = document.getElementById('status-spinner');
+  const headline = document.getElementById('status-headline');
+  const sub      = document.getElementById('status-sub');
+
+  spinner.style.display = 'none';
+  headline.style.color  = 'var(--red)';
+  headline.textContent  = '❌ Update failed';
+  sub.innerHTML = `<span style="color:var(--red)">${escHtml(error || 'An unexpected error occurred.')}</span>
+    <br><br>Please go back and try again, or contact support.`;
+}
+
+// ── Panel navigation ──────────────────────────────────────────────────────────
+function goToStep1() {
+  panelUpload.style.display = 'block';
+  panelSubmit.style.display = 'none';
+  panelStatus.style.display = 'none';
+  step1.className = 'step active';
+  step2.className = 'step';
+  step3.className = 'step';
+}
+function goToStep2() {
+  panelUpload.style.display = 'none';
+  panelSubmit.style.display = 'block';
+  panelStatus.style.display = 'none';
+  step1.className = 'step done';
+  step2.className = 'step active';
+  step3.className = 'step';
+}
+function goToStep3() {
+  panelUpload.style.display = 'none';
+  panelSubmit.style.display = 'none';
+  panelStatus.style.display = 'block';
+  document.getElementById('status-panel').style.display = 'block';
+  step1.className = 'step done';
+  step2.className = 'step done';
+  step3.className = 'step active';
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.style.display = 'block';
+  errorMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideError() { errorMsg.style.display = 'none'; }
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+</script>
+</body>
+</html>

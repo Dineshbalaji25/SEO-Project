@@ -1,0 +1,9 @@
+django
+django-redis
+redis
+celery
+requests
+anthropic
+djangorestframework
+python-dotenv
+django-environ
