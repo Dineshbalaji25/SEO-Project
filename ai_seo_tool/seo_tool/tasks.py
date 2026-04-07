@@ -40,12 +40,22 @@ def cache_image(task_id: str, image_bytes: bytes, media_type: str):
 
 
 def _pop_image(task_id: str) -> tuple[bytes, str]:
-    data = cache.get(IMAGE_KEY.format(task_id=task_id))
-    mime = cache.get(TYPE_KEY.format(task_id=task_id), "image/jpeg")
-    cache.delete(IMAGE_KEY.format(task_id=task_id))
-    cache.delete(TYPE_KEY.format(task_id=task_id))
+    key = IMAGE_KEY.format(task_id=task_id)
+    type_key = TYPE_KEY.format(task_id=task_id)
+    
+    logger.info("[%s] Attempting to retrieve image from Redis key: %s", task_id, key)
+    data = cache.get(key)
+    mime = cache.get(type_key, "image/jpeg")
+    
     if data is None:
+        # Check all keys to see if we have a mismatch
+        logger.error("[%s] ERROR: Cache miss on %s. Data is None.", task_id, key)
         raise RuntimeError("Image expired from cache before task ran.")
+        
+    logger.info("[%s] Successfully retrieved image (%d bytes) from Redis.", task_id, len(data))
+    
+    cache.delete(key)
+    cache.delete(type_key)
     return data, mime
 
 
@@ -80,17 +90,26 @@ def run_seo_pipeline(
         _notify_failure(email, product_name, str(e))
         return {"status": "failed", "error": str(e)}
 
-    # ── 2. Claude Vision ──────────────────────────────────────────────────────
-    try:
-        seo: SEOContent = generate_seo_content(
-            image_file=io.BytesIO(image_bytes),
-            product_name=product_name,
-            image_media_type=media_type,
-        )
-        logger.info("[%s] SEO content generated. Title: %s", task_id, seo.seo_title)
-    except ClaudeServiceError as e:
-        _notify_failure(email, product_name, str(e))
-        return {"status": "failed", "error": str(e)}
+    # ── 2. Read SEO from cache (already generated in the view) ────────────────
+    SEO_CACHE_KEY = "seo_result_{task_id}"
+    seo_data = cache.get(SEO_CACHE_KEY.format(task_id=task_id))
+
+    if not seo_data:
+        # Fallback: re-generate if cache expired
+        logger.warning("[%s] SEO cache record missing, falling back to Claude call", task_id)
+        try:
+            seo: SEOContent = generate_seo_content(
+                image_file=io.BytesIO(image_bytes),
+                product_name=product_name,
+                image_media_type=media_type,
+            )
+            logger.info("[%s] SEO content generated (fallback). Title: %s", task_id, seo.seo_title)
+        except ClaudeServiceError as e:
+            _notify_failure(email, product_name, str(e))
+            return {"status": "failed", "error": str(e)}
+    else:
+        seo = SEOContent(**seo_data)
+        logger.info("[%s] SEO content loaded from cache. Title: %s", task_id, seo.seo_title)
 
     # ── 3 + 4. Update thotfy.com ──────────────────────────────────────────────
     try:

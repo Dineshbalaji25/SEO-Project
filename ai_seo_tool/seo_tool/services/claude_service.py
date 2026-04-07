@@ -1,5 +1,6 @@
 """
-services/claude_service.py  —  Claude Vision → structured SEO content
+services/claude_service.py  —  OpenRouter (Gemini) → structured SEO content
+(Kept the name 'claude_service' to avoid breaking imports elsewhere)
 """
 from __future__ import annotations
 
@@ -10,49 +11,66 @@ import re
 from dataclasses import dataclass
 from typing import BinaryIO
 
-import anthropic
+from openai import OpenAI
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 SEO_SYSTEM_PROMPT = """\
-You are a senior e-commerce SEO copywriter. You will be given a product image and a product name.
+You are a senior e-commerce SEO strategist and Social Media Manager. Analyze the product image and name to generate comprehensive SEO and marketing content.
 
-Analyse the image carefully — identify the product type, materials, key features, colours,
-and any visible use-case signals — then generate three SEO fields.
+Analyse the image for: materials, features, target audience, and unique selling points.
 
-Respond with ONLY a valid JSON object. No markdown, no explanation, nothing else:
-
+Respond with ONLY a valid JSON object:
 {
   "seo_title": "...",
+  "slug": "...",
+  "meta_title": "...",
+  "meta_description": "...",
   "seo_description": "...",
-  "meta_description": "..."
+  "captions": ["caption 1", "caption 2", "caption 3", "caption 4", "caption 5"],
+  "keyword_analysis": "...",
+  "competitor_analysis": "..."
 }
 
-RULES:
-• seo_title        50–70 chars. Primary keyword near the start. No ALL CAPS.
-• seo_description  150–300 words. Plain text (no HTML). Lead with the strongest benefit.
-                   Weave in 2–3 secondary keywords naturally. End with a soft CTA.
-• meta_description 140–155 chars max. One complete sentence. Primary keyword once.
-                   Benefit + feature + implicit action.
+CRITICAL RULES:
+• seo_title: 50–70 chars. Keyword-rich.
+• slug: URL-friendly version (kebab-case).
+• meta_title: High-CTR search title (under 60 chars).
+• meta_description: Action-oriented summary for search results (under 160 chars).
+• seo_description: Engaging product description highlighting benefits and features (approx 75-100 words). MUST NOT BE EMPTY. Do not output excessively long text.
+• captions: 5 distinct creative social media post ideas with emojis.
+• keyword_analysis: List 5-7 high-traffic keywords and why they matter.
+• competitor_analysis: Identify 2 similar product categories and 1 way to beat them visually/copy-wise.
 """
 
 
 @dataclass
 class SEOContent:
     seo_title: str
-    seo_description: str
+    slug: str
+    meta_title: str
     meta_description: str
+    seo_description: str
+    captions: list[str]
+    keyword_analysis: str
+    competitor_analysis: str
 
     def to_dict(self) -> dict:
         return {
             "seo_title": self.seo_title,
-            "seo_description": self.seo_description,
+            "slug": self.slug,
+            "meta_title": self.meta_title,
             "meta_description": self.meta_description,
+            "seo_description": self.seo_description,
+            "captions": self.captions,
+            "keyword_analysis": self.keyword_analysis,
+            "competitor_analysis": self.competitor_analysis,
         }
 
 
 class ClaudeServiceError(Exception):
+    """Aliased error to match legacy naming."""
     pass
 
 
@@ -60,90 +78,111 @@ def generate_seo_content(
     image_file: BinaryIO,
     product_name: str,
     image_media_type: str = "image/jpeg",
+    model_index: int = 0,
+    batch_size: int = 1,
 ) -> SEOContent:
     """
-    Send the product image + name to Claude Vision.
+    Send the product image + name to OpenRouter.
     Returns a validated SEOContent dataclass.
     """
-    image_b64 = base64.standard_b64encode(image_file.read()).decode()
-    client = anthropic.Anthropic(
-        api_key=settings.ANTHROPIC_API_KEY,
-        timeout=180.0,  # 3 min timeout for large image uploads
-    )
-    
-    try:
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1024,
-            system=SEO_SYSTEM_PROMPT,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": image_media_type,
-                            "data": image_b64,
-                        },
-                    },
-                    {
-                        "type": "text",
-                        "text": (
-                            f"Product name: {product_name}\n\n"
-                            "Analyse the image and generate the SEO fields. "
-                            "Return ONLY the JSON object."
-                        ),
-                    },
-                ],
-            }],
+    if not settings.OPENROUTER_API_KEY:
+        raise ClaudeServiceError(
+            "OPENROUTER_API_KEY is not set. Add it to your .env file."
         )
-    except anthropic.APIConnectionError as e:
-        logger.exception("Claude connection error: %s", e)
-        raise ClaudeServiceError(f"Could not reach Anthropic API: {e}") from e
-    except anthropic.RateLimitError as e:
-        raise ClaudeServiceError("Anthropic rate limit hit — please retry shortly.") from e
-    except anthropic.APIStatusError as e:
-        raise ClaudeServiceError(f"Anthropic API error {e.status_code}: {e.message}") from e
 
-    raw = _extract_text(response)
-    logger.debug("Claude raw response: %.400s", raw)
-    return _parse_and_validate(raw)
+    # OpenRouter uses OpenAI-compatible API
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=settings.OPENROUTER_API_KEY,
+    )
+
+    if batch_size == 1:
+        MODELS = ["google/gemini-2.5-flash"]
+    else:
+        MODELS = [
+            "qwen/qwen3.6-plus:free",
+            "nvidia/nemotron-nano-12b-v2-vl:free",
+        ]
+
+    base_index = model_index if batch_size > 1 else 0
+    image_b64 = base64.standard_b64encode(image_file.read()).decode()
+    last_error = None
+
+    for attempt in range(len(MODELS)):
+        current_index = (base_index + attempt) % len(MODELS)
+        model_name = MODELS[current_index]
+        logger.info("Attempting SEO generation with model: %s", model_name)
+
+        try:
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"{SEO_SYSTEM_PROMPT}\n\nProduct name: {product_name}\n\nAnalyse the image and generate the SEO and marketing fields. Return ONLY raw JSON, starting with {{ and ending with }}. Do not output any thinking or markdown blocks."
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:{image_media_type};base64,{image_b64}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=2500
+            )
+
+            if not response or not response.choices[0].message.content:
+                raise ClaudeServiceError("OpenRouter returned no content.")
+
+            raw = response.choices[0].message.content.strip()
+            return _parse_and_validate(raw)
+
+        except Exception as e:
+            logger.warning("Model %s failed: %s", model_name, e)
+            last_error = e
+            continue
+
+    logger.error("All OpenRouter models failed. Last error: %s", last_error)
+    raise ClaudeServiceError(f"Cloud analysis failed after trying all models. Last error: {last_error}")
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
-
-def _extract_text(response) -> str:
-    for block in response.content:
-        if block.type == "text":
-            return block.text.strip()
-    raise ClaudeServiceError("Claude returned no text block.")
-
 
 def _parse_and_validate(raw: str) -> SEOContent:
     clean = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.MULTILINE)
     match = re.search(r"\{.*\}", clean, re.DOTALL)
     if not match:
-        raise ClaudeServiceError(f"No JSON found in Claude response: {raw[:300]}")
+        raise ClaudeServiceError(f"No JSON found in response.")
+    
+    json_str = match.group()
+    
+    # Fix trailing commas common in LLM outputs
+    json_str = re.sub(r',\s*([\]}])', r'\1', json_str)
+
     try:
-        data = json.loads(match.group())
+        data = json.loads(json_str)
     except json.JSONDecodeError as e:
-        raise ClaudeServiceError(f"Malformed JSON from Claude: {e}") from e
+        raise ClaudeServiceError(f"Malformed JSON from AI. Raw snippet: {json_str[:300]}") from e
 
-    for field in ("seo_title", "seo_description", "meta_description"):
+    REQUIRED = ("seo_title", "slug", "meta_title", "meta_description", 
+                "seo_description", "captions", "keyword_analysis", "competitor_analysis")
+    
+    for field in REQUIRED:
         if field not in data:
-            raise ClaudeServiceError(f"Claude JSON missing field: {field}")
-
-    title = data["seo_title"].strip()
-    meta = data["meta_description"].strip()
-
-    if len(title) > 70:
-        title = title[:70].rsplit(" ", 1)[0]
-    if len(meta) > 160:
-        meta = meta[:157].rsplit(" ", 1)[0] + "..."
+            data[field] = "" if field != "captions" else []
 
     return SEOContent(
-        seo_title=title,
-        seo_description=data["seo_description"].strip(),
-        meta_description=meta,
+        seo_title=str(data["seo_title"]).strip(),
+        slug=str(data["slug"]).strip(),
+        meta_title=str(data["meta_title"]).strip(),
+        meta_description=str(data["meta_description"]).strip(),
+        seo_description=str(data["seo_description"]).strip(),
+        captions=data["captions"],
+        keyword_analysis=str(data["keyword_analysis"]).strip(),
+        competitor_analysis=str(data["competitor_analysis"]).strip(),
     )

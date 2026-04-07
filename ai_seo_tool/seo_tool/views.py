@@ -22,9 +22,12 @@ import logging
 import uuid
 
 from django.core.cache import cache
-from django.http import JsonResponse
+import docx
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 
 from .services import ClaudeServiceError, generate_seo_content
@@ -43,6 +46,7 @@ SEO_CACHE_KEY  = "seo_result_{token}"
 SEO_CACHE_TTL  = 60 * 30   # 30 min — user can take their time reviewing
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class GenerateView(View):
     """
     GET  / → render upload page
@@ -71,6 +75,12 @@ class GenerateView(View):
             return JsonResponse({"error": "Image too large. Max 8 MB."}, status=400)
 
         product_name_hint = request.POST.get("product_name_hint", "").strip()
+        try:
+            model_index = int(request.POST.get("model_index", 0))
+            batch_size = int(request.POST.get("batch_size", 1))
+        except ValueError:
+            model_index = 0
+            batch_size = 1
 
         # ── Call Claude Vision ────────────────────────────────────────────────
         image_bytes = image_file.read()
@@ -80,6 +90,8 @@ class GenerateView(View):
                 image_file=io.BytesIO(image_bytes),
                 product_name=product_name_hint or "this product",
                 image_media_type=media_type,
+                model_index=model_index,
+                batch_size=batch_size,
             )
         except ClaudeServiceError as e:
             logger.error("Claude error during generate: %s", e)
@@ -87,19 +99,25 @@ class GenerateView(View):
 
         # ── Cache image + SEO for the submit step ─────────────────────────────
         token = uuid.uuid4().hex
+        logger.info("[Token %s] Caching image (%d bytes) with media type %s", token, len(image_bytes), media_type)
         cache_image(token, image_bytes, media_type)
+        
         cache.set(
             SEO_CACHE_KEY.format(token=token),
             seo.to_dict(),
             timeout=SEO_CACHE_TTL,
         )
+        
+        # Immediate verification
+        verification = cache.get(f"seo_img_{token}")
+        if verification:
+             logger.info("[Token %s] Cache verification SUCCESSFUL — image found in cache.", token)
+        else:
+             logger.error("[Token %s] Cache verification FAILED — image missing immediately after set!", token)
 
-        return JsonResponse({
-            "token": token,
-            "seo_title":        seo.seo_title,
-            "seo_description":  seo.seo_description,
-            "meta_description": seo.meta_description,
-        })
+        response_data = seo.to_dict()
+        response_data["token"] = token
+        return JsonResponse(response_data)
 
 
 class SubmitView(View):
@@ -187,3 +205,69 @@ class StatusView(View):
 
         # PENDING / STARTED / RETRY → still processing
         return JsonResponse({"status": "processing"})
+
+class DownloadDocxView(View):
+    """
+    GET /download/<task_id>/
+    Generates a Word Document (.docx) for the given task result.
+    """
+    def get(self, request, task_id: str):
+        from celery.result import AsyncResult
+        result = AsyncResult(task_id)
+
+        # Allow downloading if the record is in cache OR in successful Celery result
+        data = cache.get(f"seo_result_{task_id}")
+        if not data and result.state == "SUCCESS":
+            data = result.result or {}
+
+        if not data:
+            return HttpResponse("Result not found or task not completed.", status=404)
+
+        seo_title = data.get("seo_title", "Untitled Product")
+        slug = data.get("slug", "")
+        meta_title = data.get("meta_title", "")
+        meta_description = data.get("meta_description", "")
+        seo_description = data.get("seo_description", "")
+        captions = data.get("captions", [])
+        keywords = data.get("keyword_analysis", "")
+        competitors = data.get("competitor_analysis", "")
+
+        # Create Word Doc
+        doc = docx.Document()
+        doc.add_heading(f"SEO Strategy: {seo_title}", 0)
+
+        # ── Section 1: Metadata ─────────────────
+        doc.add_heading("1. Product Metadata", level=1)
+        doc.add_paragraph(f"SEO Title: {seo_title}")
+        doc.add_paragraph(f"Slug: {slug}")
+        doc.add_paragraph(f"Meta Title: {meta_title}")
+        doc.add_paragraph(f"Meta Description: {meta_description}")
+
+        # ── Section 2: Description ──────────────
+        doc.add_heading("2. Product Description", level=1)
+        doc.add_paragraph(seo_description)
+
+        # ── Section 3: Social Captions ──────────
+        if captions:
+            doc.add_heading("3. Social Media Captions (5 Post Ideas)", level=1)
+            for i, cap in enumerate(captions, 1):
+                doc.add_paragraph(f"Post {i}: {cap}")
+
+        # ── Section 4: Deep Analysis ─────────────
+        doc.add_heading("4. Keyword Analysis", level=1)
+        doc.add_paragraph(keywords)
+
+        doc.add_heading("5. Competitor Analysis & Positioning", level=1)
+        doc.add_paragraph(competitors)
+
+        # Output to stream
+        f = io.BytesIO()
+        doc.save(f)
+        f.seek(0)
+
+        response = HttpResponse(
+            f.read(),
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        response["Content-Disposition"] = f'attachment; filename="SEO_{task_id[:8]}.docx"'
+        return response

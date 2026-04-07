@@ -7,3 +7,9 @@ anthropic
 djangorestframework
 python-dotenv
 django-environ
+Pillow
+google-generativeai
+openai
+djangorestframework-simplejwt
+python-docx
+django-oscar
