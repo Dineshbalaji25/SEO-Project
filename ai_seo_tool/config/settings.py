@@ -7,14 +7,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-seo-tool-key-for-dev")
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "https://*.thotfy.com",
-]
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="django-insecure-seo-tool-key-for-dev")
+DEBUG = env.bool("DEBUG", default=False)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "https://*.thotfy.com",
+    ],
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",

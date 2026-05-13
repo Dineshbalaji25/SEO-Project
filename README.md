@@ -1,13 +1,13 @@
 # AI SEO Generator for thotfy.com
 
-A dual-project system that uses **Claude 3.5 Sonnet Vision** to analyze product images and automatically generate/push SEO metadata (Title, Description, Meta Description) into your **Django Oscar-powered** e-commerce platform.
+A dual-project system that uses **OpenRouter-hosted multimodal models** to analyze product images and automatically generate/push SEO metadata (Title, Description, Meta Description) into your **Django Oscar-powered** e-commerce platform.
 
 ---
 
 ## 🏗 Project Structure
 
 1.  **`ai_seo_tool/`**: A standalone Django service that partners/vendors use.
-    *   Upload images & generate SEO content via Claude Vision.
+    *   Upload images & generate SEO content via OpenRouter-hosted vision-capable models.
     *   Push approved metadata to thotfy.com via private API.
     *   Async processing via Celery + Redis.
 2.  **`thotfy_oscar_api/`**: A "drop-in" Django app (`catalogue_api`) for your main thotfy.com codebase.
@@ -21,7 +21,7 @@ A dual-project system that uses **Claude 3.5 Sonnet Vision** to analyze product 
 ### 1. Prerequisites
 *   Python 3.10+
 *   Redis (Required for Celery and image caching)
-*   Anthropic API Key ([Generate one here](https://console.anthropic.com/))
+*   OpenRouter API Key ([Generate one here](https://openrouter.ai/keys))
 
 ### 2. Local Setup
 ```bash
@@ -32,8 +32,10 @@ pip install -r requirements.txt
 ```
 
 ### 3. Environment Config
-Rename `.env.example` to `.env` (or use the one I created) and fill in:
-*   `ANTHROPIC_API_KEY`: Your Claude key.
+Create an `.env` file inside `ai_seo_tool/` and fill in:
+*   `OPENROUTER_API_KEY`: Your OpenRouter key (required).
+*   `ANTHROPIC_API_KEY`: Optional fallback/legacy key (if used by custom changes).
+*   `GEMINI_API_KEY`: Optional fallback/legacy key (if used by custom changes).
 *   `THOTFY_BASE_URL`: URL of your main Oscar site (e.g., `https://thotfy.com`).
 *   `THOTFY_SERVICE_USERNAME`: Service account username on thotfy.com.
 *   `THOTFY_SERVICE_PASSWORD`: Service account password.
@@ -79,8 +81,8 @@ To allow the AI tool to "talk" to your Oscar site, add the `catalogue_api` app t
 
 ## 🔄 How it Works (Flow)
 
-1.  **Image Analysis**: Partner uploads a product photo. Claude Vision analyzes materials, features, and use-case.
-2.  **SEO Generation**: Claude generates a strict JSON response containing a 60-char title, 200-word description, and 155-char meta-tag.
+1.  **Image Analysis**: Partner uploads a product photo. The configured OpenRouter model analyzes materials, features, and use-case.
+2.  **SEO Generation**: The model generates a strict JSON response containing SEO title, meta, descriptions, captions, and competitive analysis.
 3.  **Review**: Partner reviews the AI content on a sleek dashboard.
 4.  **Sync**: Partner enters their partner name and product name. The tool hits thotfy.com's API, finds the correct product, and updates it in the Oscar database.
 5.  **Notify**: An automated email is sent to the partner with a link to their updated live product dashboard.
@@ -90,7 +92,7 @@ To allow the AI tool to "talk" to your Oscar site, add the `catalogue_api` app t
 ## 🛡 Security & Design
 *   **No Image Storage**: Images are processed in memory and cached temporarily in Redis (TTL: 10m).
 *   **Fuzzy Matching**: Matches products by partner name + title similarity to ensure updates hit the right target.
-*   **Rate Limited**: Enforces Anthropic's rate limits and Celery concurrency to prevent API overages.
+*   **Rate Limited**: Uses batch throttling and Celery concurrency controls to reduce API overages.
 
 ---
 
