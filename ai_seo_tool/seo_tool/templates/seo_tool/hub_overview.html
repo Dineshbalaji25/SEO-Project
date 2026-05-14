@@ -18,6 +18,7 @@
     li { margin-bottom: 7px; color: #ddd; }
     .top-nav { margin-top: 12px; }
     .top-nav a { color: #7ce0a8; text-decoration: none; margin-right: 10px; }
+    .top-nav a:hover { text-decoration: underline; }
     .top-nav a:focus { outline: 2px solid #7ce0a8; outline-offset: 2px; border-radius: 4px; }
   </style>
 </head>
@@ -39,7 +40,7 @@
         {% for module in hub.core_modules %}
           <div class="card">
             <h3 style="margin-top:0">{{ module.name }}</h3>
-            <span class="pill">{{ module.status|upper }}</span>
+            <span class="pill" aria-label="Status: {{ module.status }}">{{ module.status|upper }}</span>
             <p style="margin-top:8px">{{ module.description }}</p>
           </div>
         {% endfor %}
