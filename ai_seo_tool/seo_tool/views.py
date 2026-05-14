@@ -22,6 +22,7 @@ import logging
 import uuid
 
 from django.core.cache import cache
+from django.contrib.auth.decorators import login_required
 import docx
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
@@ -273,6 +274,7 @@ class DownloadDocxView(View):
         return response
 
 
+@method_decorator(login_required, name='dispatch')
 class HubOverviewView(View):
     """
     GET /hub/
@@ -286,6 +288,7 @@ class HubOverviewView(View):
         return render(request, "seo_tool/hub_overview.html", {"hub": overview})
 
 
+@method_decorator(login_required, name='dispatch')
 class HubOverviewApiView(View):
     """
     GET /api/hub/overview/
