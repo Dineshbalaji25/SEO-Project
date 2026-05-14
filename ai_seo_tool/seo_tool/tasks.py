@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import io
 import logging
+from datetime import datetime, timezone
 
 from celery import shared_task
 from django.conf import settings
@@ -24,6 +25,7 @@ from .services import (
     ThotfyAmbiguousProductError,
     ThotfyServiceError,
     generate_seo_content,
+    get_hub_overview,
     update_product_seo,
 )
 
@@ -176,3 +178,43 @@ def _notify_failure(email: str, product_name: str, error: str):
         send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=True)
     except Exception as e:
         logger.warning("Failed to send failure email to %s: %s", email, e)
+
+
+@shared_task(name="seo_tool.tasks.run_daily_rank_tracking")
+def run_daily_rank_tracking() -> dict:
+    """
+    Scheduled task placeholder for daily rank tracking snapshots.
+    """
+    return {
+        "task": "run_daily_rank_tracking",
+        "status": "queued_for_integration",
+        "tracked_modules": ["rank_tracking", "analytics_attribution"],
+        "executed_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@shared_task(name="seo_tool.tasks.run_daily_technical_audit")
+def run_daily_technical_audit() -> dict:
+    """
+    Scheduled task placeholder for crawl/indexability checks.
+    """
+    return {
+        "task": "run_daily_technical_audit",
+        "status": "queued_for_integration",
+        "tracked_modules": ["technical_seo", "on_page_auditor"],
+        "executed_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@shared_task(name="seo_tool.tasks.run_daily_alert_scan")
+def run_daily_alert_scan() -> dict:
+    """
+    Scheduled task placeholder for KPI and anomaly alert checks.
+    """
+    overview = get_hub_overview()
+    return {
+        "task": "run_daily_alert_scan",
+        "status": "queued_for_integration",
+        "success_metrics": overview["success_metrics"],
+        "executed_at": datetime.now(timezone.utc).isoformat(),
+    }
