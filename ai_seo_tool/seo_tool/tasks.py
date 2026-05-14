@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import io
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from celery import shared_task
 from django.conf import settings
@@ -189,7 +189,7 @@ def run_daily_rank_tracking() -> dict:
         "task": "run_daily_rank_tracking",
         "status": "queued_for_integration",
         "tracked_modules": ["rank_tracking", "analytics_attribution"],
-        "executed_at": datetime.now(timezone.utc).isoformat(),
+        "executed_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -202,7 +202,7 @@ def run_daily_technical_audit() -> dict:
         "task": "run_daily_technical_audit",
         "status": "queued_for_integration",
         "tracked_modules": ["technical_seo", "on_page_auditor"],
-        "executed_at": datetime.now(timezone.utc).isoformat(),
+        "executed_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -216,5 +216,5 @@ def run_daily_alert_scan() -> dict:
         "task": "run_daily_alert_scan",
         "status": "queued_for_integration",
         "success_metrics": overview["success_metrics"],
-        "executed_at": datetime.now(timezone.utc).isoformat(),
+        "executed_at": datetime.now(UTC).isoformat(),
     }

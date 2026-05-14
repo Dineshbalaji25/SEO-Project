@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
+STATUS_PLANNED = "planned"
+STATUS_AVAILABLE = "available"
+STATUS_MVP = "mvp"
+
 
 @dataclass(frozen=True)
 class HubModule:
@@ -28,15 +32,15 @@ def get_hub_overview() -> dict:
 
 def _core_modules() -> tuple[HubModule, ...]:
     return (
-        HubModule("keyword_research", "Keyword Research", "planned", "Keyword ideas, search intent grouping, and difficulty/volume tracking."),
-        HubModule("on_page_auditor", "On-Page SEO Auditor", "planned", "Title/meta/H1/content checks, schema validation, and image ALT audits."),
-        HubModule("technical_seo", "Technical SEO", "planned", "Crawl health, indexability, sitemap/robots validation, and Core Web Vitals."),
-        HubModule("content_optimization", "Content Optimization", "available", "AI-assisted title/meta/product copy generation and export."),
-        HubModule("competitor_intelligence", "Competitor Intelligence", "planned", "Keyword gaps, SERP snapshots, and pricing/content comparison."),
-        HubModule("rank_tracking", "Rank Tracking", "planned", "Daily position tracking by keyword, device, and location."),
-        HubModule("backlink_monitoring", "Backlink Monitoring", "planned", "New/lost backlinks and toxic link alerting."),
-        HubModule("local_seo", "Local SEO", "planned", "GBP consistency, citations, and review monitoring for local campaigns."),
-        HubModule("analytics_attribution", "Analytics & Attribution", "mvp", "Traffic, conversions, and channel impact dashboards."),
+        HubModule("keyword_research", "Keyword Research", STATUS_PLANNED, "Keyword ideas, search intent grouping, and difficulty/volume tracking."),
+        HubModule("on_page_auditor", "On-Page SEO Auditor", STATUS_PLANNED, "Title/meta/H1/content checks, schema validation, and image ALT audits."),
+        HubModule("technical_seo", "Technical SEO", STATUS_PLANNED, "Crawl health, indexability, sitemap/robots validation, and Core Web Vitals."),
+        HubModule("content_optimization", "Content Optimization", STATUS_AVAILABLE, "AI-assisted title/meta/product copy generation and export."),
+        HubModule("competitor_intelligence", "Competitor Intelligence", STATUS_PLANNED, "Keyword gaps, SERP snapshots, and pricing/content comparison."),
+        HubModule("rank_tracking", "Rank Tracking", STATUS_PLANNED, "Daily position tracking by keyword, device, and location."),
+        HubModule("backlink_monitoring", "Backlink Monitoring", STATUS_PLANNED, "New/lost backlinks and toxic link alerting."),
+        HubModule("local_seo", "Local SEO", STATUS_PLANNED, "GBP consistency, citations, and review monitoring for local campaigns."),
+        HubModule("analytics_attribution", "Analytics & Attribution", STATUS_MVP, "Traffic, conversions, and channel impact dashboards."),
     )
 
 
