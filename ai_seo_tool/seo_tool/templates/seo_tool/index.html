@@ -281,6 +281,9 @@
     Upload your product photos, let the AI analyze deep keywords and competitors,
     and download a professional SEO blueprint for any marketplace.
   </p>
+  <p class="sub" style="margin-top:-1.5rem; margin-bottom:2rem; font-size:.92rem;">
+    Need operational visibility? <a href="{% url 'hub_overview' %}" style="color:var(--accent); text-decoration:none;">Open SEO Operations Hub</a>
+  </p>
 
   <!-- Steps -->
   <div class="steps" id="steps-bar">
@@ -463,22 +466,22 @@ function showResults() {
   step2.className = 'step done';
   step3.className = 'step active done';
 
-  resultsWrap.innerHTML = results.map(r => `
+  resultsWrap.innerHTML = results.map((r, index) => `
     <div class="card">
       <div class="preview-header">
-        <h3 style="font-family:Syne,sans-serif; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:0.02em;">${r.fileName}</h3>
+        <h3 style="font-family:Syne,sans-serif; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:0.02em;">${escapeHtml(r.fileName)}</h3>
         <span class="badge-ai">Deep Analysis Complete</span>
       </div>
       
-      ${r.error ? `<div class="error-msg">${r.error}</div>` : `
+      ${r.error ? `<div class="error-msg">${escapeHtml(r.error)}</div>` : `
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
-           <div class="seo-field"> <div class="seo-field-label">Search Slug</div> <div class="seo-field-value" style="font-size:.85rem; font-family:monospace; opacity:.6">${r.slug}</div> </div>
-           <div class="seo-field"> <div class="seo-field-label">Meta Title</div> <div class="seo-field-value title">${r.meta_title}</div> </div>
+           <div class="seo-field"> <div class="seo-field-label">Search Slug</div> <div class="seo-field-value" style="font-size:.85rem; font-family:monospace; opacity:.6">${escapeHtml(r.slug || '')}</div> </div>
+           <div class="seo-field"> <div class="seo-field-label">Meta Title</div> <div class="seo-field-value title">${escapeHtml(r.meta_title || '')}</div> </div>
         </div>
 
         <div class="seo-field">
           <div class="seo-field-label">Global Product Description</div>
-          <div class="seo-field-value" style="font-size:.95rem; line-height:1.7; color:rgba(255,255,255,0.8)">${r.seo_description}</div>
+          <div class="seo-field-value" style="font-size:.95rem; line-height:1.7; color:rgba(255,255,255,0.8)">${escapeHtml(r.seo_description || '')}</div>
         </div>
 
         <div class="seo-field">
@@ -486,26 +489,152 @@ function showResults() {
           <div class="seo-field-value" style="font-size:.9rem; color:var(--accent); line-height:1.6">
             ${(r.captions || []).map((c, i) => `
               <div style="margin-bottom:12px; padding:10px; background:rgba(0,245,160,0.05); border-radius:8px; border-left:2px solid var(--accent)">
-                <span style="font-weight:800; font-family:Syne,sans-serif; opacity:.7; margin-right:5px;">IDEA ${i+1}:</span> ${c}
+                <span style="font-weight:800; font-family:Syne,sans-serif; opacity:.7; margin-right:5px;">IDEA ${i+1}:</span> ${escapeHtml(c)}
               </div>
             `).join('')}
           </div>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
-           <div class="seo-field"> <div class="seo-field-label">Keyword Analysis</div> <div class="seo-field-value" style="font-size:.8rem; line-height:1.5">${r.keyword_analysis}</div> </div>
-           <div class="seo-field"> <div class="seo-field-label">Competitive Insights</div> <div class="seo-field-value" style="font-size:.8rem; line-height:1.5">${r.competitor_analysis}</div> </div>
+           <div class="seo-field"> <div class="seo-field-label">Keyword Analysis</div> <div class="seo-field-value" style="font-size:.8rem; line-height:1.5">${escapeHtml(r.keyword_analysis || '')}</div> </div>
+           <div class="seo-field"> <div class="seo-field-label">Competitive Insights</div> <div class="seo-field-value" style="font-size:.8rem; line-height:1.5">${escapeHtml(r.competitor_analysis || '')}</div> </div>
         </div>
 
         <div style="margin-top:2rem;">
-          <a href="/download/${r.token}/" class="btn btn-accent" style="text-decoration:none;">
+          <a href="/download/${encodeURIComponent(r.token)}/" class="btn btn-accent" style="text-decoration:none;">
             Download Professional Report (.docx)
           </a>
+        </div>
+
+        <div style="margin-top:1.2rem; border-top:1px solid var(--border); padding-top:1.25rem;">
+          <div class="seo-field-label" style="margin-bottom:10px;">Push to thotfy Pipeline</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+            <input id="partner-${index}" type="text" placeholder="Partner name">
+            <input id="product-${index}" type="text" placeholder="Product name">
+          </div>
+          <input id="email-${index}" type="email" placeholder="Notification email" style="margin-bottom:10px;">
+          <button class="btn btn-outline btn-submit-pipeline" data-index="${index}" data-token="${escapeHtmlAttr(r.token || '')}" type="button">
+            Submit to Pipeline
+          </button>
+          <div id="pipeline-msg-${index}" style="margin-top:10px; font-size:.85rem; color:var(--muted);"></div>
+          <div id="pipeline-out-${index}" style="margin-top:10px; display:none;">
+            <div class="seo-field" style="margin-bottom:10px;">
+              <div class="seo-field-label">Task Status</div>
+              <div id="pipeline-status-${index}" class="seo-field-value">processing</div>
+            </div>
+            <a id="admin-link-${index}" class="btn btn-outline" target="_blank" rel="noopener noreferrer" style="text-decoration:none; display:none; margin-bottom:8px;">Open Updated Product</a>
+            <a id="download-final-${index}" class="btn btn-accent" style="text-decoration:none; display:none;">Download Final Task Report</a>
+          </div>
         </div>
       `}
     </div>
   `).join('');
 }
+
+resultsWrap.addEventListener('click', async (event) => {
+  const button = event.target.closest('.btn-submit-pipeline');
+  if (!button) return;
+
+  const index = button.dataset.index;
+  const token = button.dataset.token;
+  const partner = document.getElementById(`partner-${index}`).value.trim();
+  const product = document.getElementById(`product-${index}`).value.trim();
+  const email = document.getElementById(`email-${index}`).value.trim();
+  const msg = document.getElementById(`pipeline-msg-${index}`);
+  const out = document.getElementById(`pipeline-out-${index}`);
+  const statusEl = document.getElementById(`pipeline-status-${index}`);
+  const adminLink = document.getElementById(`admin-link-${index}`);
+  const downloadFinal = document.getElementById(`download-final-${index}`);
+
+  if (!token) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Missing token for this result. Regenerate this item.';
+    return;
+  }
+  if (!partner || !product || !email) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Partner, product, and email are required.';
+    return;
+  }
+
+  button.disabled = true;
+  msg.style.color = 'var(--muted)';
+  msg.textContent = 'Submitting task...';
+  out.style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('token', token);
+  fd.append('partner_name', partner);
+  fd.append('product_name', product);
+  fd.append('email', email);
+
+  try {
+    const res = await fetch('/submit/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      body: fd
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const errors = data.errors || {};
+      const firstError = Object.values(errors)[0] || 'Failed to submit task.';
+      throw new Error(firstError);
+    }
+
+    const taskId = data.task_id;
+    if (!taskId) throw new Error('Task created without task_id.');
+    msg.style.color = 'var(--accent)';
+    msg.textContent = `Task queued: ${taskId}. Polling status...`;
+    out.style.display = 'block';
+    statusEl.textContent = 'processing';
+    adminLink.style.display = 'none';
+    downloadFinal.style.display = 'none';
+    downloadFinal.href = `/download/${encodeURIComponent(taskId)}/`;
+
+    const poll = async () => {
+      const sres = await fetch(`/status/${encodeURIComponent(taskId)}/`);
+      const sdata = await sres.json();
+      statusEl.textContent = sdata.status || 'processing';
+
+      if (sdata.status === 'failed') {
+        msg.style.color = 'var(--red)';
+        msg.textContent = sdata.error || 'Pipeline failed.';
+        return true;
+      }
+
+      if (sdata.status !== 'processing') {
+        msg.style.color = 'var(--accent)';
+        msg.textContent = 'Pipeline completed successfully.';
+        if (sdata.admin_url) {
+          adminLink.href = sdata.admin_url;
+          adminLink.style.display = 'flex';
+        }
+        downloadFinal.style.display = 'flex';
+        return true;
+      }
+      return false;
+    };
+
+    const done = await poll();
+    if (!done) {
+      const timer = setInterval(async () => {
+        try {
+          const finished = await poll();
+          if (finished) clearInterval(timer);
+        } catch (e) {
+          msg.style.color = 'var(--red)';
+          msg.textContent = 'Status check failed. You can retry later with the same token.';
+          clearInterval(timer);
+        }
+      }, 3000);
+    }
+  } catch (e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = e.message || 'Task submission failed.';
+  } finally {
+    button.disabled = false;
+  }
+});
 
 document.getElementById('btn-restart').addEventListener('click', () => {
   window.location.reload();
@@ -520,6 +649,17 @@ function hideError() { errorMsg.style.display = 'none'; }
 function getCookie(name) {
   const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
   return v ? v.pop() : '';
+}
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+function escapeHtmlAttr(value) {
+  return escapeHtml(value);
 }
 </script>
 </body>
