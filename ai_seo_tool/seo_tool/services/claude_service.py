@@ -143,6 +143,12 @@ def generate_seo_content(
             return _parse_and_validate(raw)
 
         except Exception as e:
+            if _is_non_retryable_auth_error(e):
+                logger.error("OpenRouter authentication failed: %s", e)
+                raise ClaudeServiceError(
+                    "Cloud analysis failed: OpenRouter authentication error (401). "
+                    "Verify OPENROUTER_API_KEY and that the OpenRouter account/user exists."
+                ) from e
             logger.warning("Model %s failed: %s", model_name, e)
             last_error = e
             continue
@@ -186,3 +192,12 @@ def _parse_and_validate(raw: str) -> SEOContent:
         keyword_analysis=str(data["keyword_analysis"]).strip(),
         competitor_analysis=str(data["competitor_analysis"]).strip(),
     )
+
+
+def _is_non_retryable_auth_error(exc: Exception) -> bool:
+    status_code = getattr(exc, "status_code", None)
+    if status_code == 401:
+        return True
+
+    message = str(exc).lower()
+    return "error code: 401" in message or "user not found" in message
