@@ -348,6 +348,7 @@
 // ── State ─────────────────────────────────────────────────────────────────────
 let filesToProcess = [];
 let results        = [];
+const POLL_INTERVAL_MS = 3000;
 const pollTimersByIndex = {};
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -618,9 +619,8 @@ resultsWrap.addEventListener('click', async (event) => {
 
     const done = await poll();
     if (!done) {
-      if (pollTimersByIndex[index]) {
-        clearInterval(pollTimersByIndex[index]);
-      }
+      clearInterval(pollTimersByIndex[index]);
+      delete pollTimersByIndex[index];
       const timer = setInterval(async () => {
         try {
           const finished = await poll();
@@ -634,7 +634,7 @@ resultsWrap.addEventListener('click', async (event) => {
           clearInterval(timer);
           delete pollTimersByIndex[index];
         }
-      }, 3000);
+      }, POLL_INTERVAL_MS);
       pollTimersByIndex[index] = timer;
     }
   } catch (e) {
