@@ -287,7 +287,7 @@
     and download a professional SEO blueprint for any marketplace.
   </p>
   <p class="sub" style="margin-top:-1.5rem; margin-bottom:2rem; font-size:.92rem;">
-    Need operational visibility? <a href="{% url 'hub_overview' %}" aria-label="Navigate to SEO Operations Hub" style="color:var(--accent); text-decoration:none;">Open SEO Operations Hub</a>
+    Need operational visibility? <a href="{% url 'hub_overview' %}" style="color:var(--accent); text-decoration:none;">Open SEO Operations Hub</a>
   </p>
 
   <!-- Steps -->
@@ -516,9 +516,16 @@ function showResults() {
         <div style="margin-top:1.2rem; border-top:1px solid var(--border); padding-top:1.25rem;">
           <div class="seo-field-label" style="margin-bottom:10px;">Push to thotfy Pipeline</div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+            <label for="partner-${index}" style="display:block; width:100%; font-size:.75rem; color:var(--muted);">
+              Partner name
             <input id="partner-${index}" type="text" aria-label="Partner name" placeholder="Partner name">
+            </label>
+            <label for="product-${index}" style="display:block; width:100%; font-size:.75rem; color:var(--muted);">
+              Product name
             <input id="product-${index}" type="text" aria-label="Product name" placeholder="Product name">
+            </label>
           </div>
+          <label for="email-${index}" style="display:block; font-size:.75rem; color:var(--muted); margin-bottom:4px;">Notification email</label>
           <input id="email-${index}" type="email" aria-label="Notification email" placeholder="Notification email" style="margin-bottom:10px;">
           <button class="btn btn-outline btn-submit-pipeline" data-index="${index}" type="button">
             Submit to Pipeline
@@ -546,7 +553,8 @@ resultsWrap.addEventListener('click', async (event) => {
   const token = results[index]?.token;
   const partner = document.getElementById(`partner-${index}`).value.trim();
   const product = document.getElementById(`product-${index}`).value.trim();
-  const email = document.getElementById(`email-${index}`).value.trim();
+  const emailInput = document.getElementById(`email-${index}`);
+  const email = emailInput.value.trim();
   const msg = document.getElementById(`pipeline-msg-${index}`);
   const out = document.getElementById(`pipeline-out-${index}`);
   const statusEl = document.getElementById(`pipeline-status-${index}`);
@@ -561,6 +569,11 @@ resultsWrap.addEventListener('click', async (event) => {
   if (!partner || !product || !email) {
     msg.style.color = 'var(--red)';
     msg.textContent = 'Partner, product, and email are required.';
+    return;
+  }
+  if (!emailInput.checkValidity()) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Please enter a valid email address.';
     return;
   }
 
@@ -674,6 +687,7 @@ function getCookie(name) {
   return v ? v.pop() : '';
 }
 function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
   return String(value).replace(/[&<>"']/g, (char) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]
   ));
