@@ -348,6 +348,7 @@
 // ── State ─────────────────────────────────────────────────────────────────────
 let filesToProcess = [];
 let results        = [];
+const pollTimersByIndex = {};
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const fileInput    = document.getElementById('file-input');
@@ -513,7 +514,7 @@ function showResults() {
             <input id="product-${index}" type="text" placeholder="Product name">
           </div>
           <input id="email-${index}" type="email" placeholder="Notification email" style="margin-bottom:10px;">
-          <button class="btn btn-outline btn-submit-pipeline" data-index="${index}" data-token="${escapeHtmlAttr(r.token || '')}" type="button">
+          <button class="btn btn-outline btn-submit-pipeline" data-index="${index}" type="button">
             Submit to Pipeline
           </button>
           <div id="pipeline-msg-${index}" style="margin-top:10px; font-size:.85rem; color:var(--muted);"></div>
@@ -535,8 +536,8 @@ resultsWrap.addEventListener('click', async (event) => {
   const button = event.target.closest('.btn-submit-pipeline');
   if (!button) return;
 
-  const index = button.dataset.index;
-  const token = button.dataset.token;
+  const index = Number(button.dataset.index);
+  const token = results[index]?.token;
   const partner = document.getElementById(`partner-${index}`).value.trim();
   const product = document.getElementById(`product-${index}`).value.trim();
   const email = document.getElementById(`email-${index}`).value.trim();
@@ -617,16 +618,24 @@ resultsWrap.addEventListener('click', async (event) => {
 
     const done = await poll();
     if (!done) {
+      if (pollTimersByIndex[index]) {
+        clearInterval(pollTimersByIndex[index]);
+      }
       const timer = setInterval(async () => {
         try {
           const finished = await poll();
-          if (finished) clearInterval(timer);
+          if (finished) {
+            clearInterval(timer);
+            delete pollTimersByIndex[index];
+          }
         } catch (e) {
           msg.style.color = 'var(--red)';
           msg.textContent = 'Status check failed. You can retry later with the same token.';
           clearInterval(timer);
+          delete pollTimersByIndex[index];
         }
       }, 3000);
+      pollTimersByIndex[index] = timer;
     }
   } catch (e) {
     msg.style.color = 'var(--red)';
@@ -638,6 +647,9 @@ resultsWrap.addEventListener('click', async (event) => {
 
 document.getElementById('btn-restart').addEventListener('click', () => {
   window.location.reload();
+});
+window.addEventListener('beforeunload', () => {
+  Object.values(pollTimersByIndex).forEach((timer) => clearInterval(timer));
 });
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
@@ -651,15 +663,9 @@ function getCookie(name) {
   return v ? v.pop() : '';
 }
 function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-function escapeHtmlAttr(value) {
-  return escapeHtml(value);
+  return String(value).replace(/[&<>"']/g, (char) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]
+  ));
 }
 </script>
 </body>
