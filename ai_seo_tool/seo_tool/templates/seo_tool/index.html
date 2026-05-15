@@ -87,6 +87,11 @@
       margin-bottom: 3rem;
       max-width: 540px;
     }
+    a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
 
     /* ── Steps indicator ─────────────────────────────────── */
     .steps {
@@ -579,7 +584,10 @@ resultsWrap.addEventListener('click', async (event) => {
     const data = await res.json();
     if (!res.ok) {
       const errors = data.errors || {};
-      const firstError = Object.values(errors)[0] || 'Failed to submit task.';
+      const firstRawError = Object.values(errors)[0];
+      const firstError = Array.isArray(firstRawError)
+        ? firstRawError[0]
+        : (firstRawError || 'Failed to submit task.');
       throw new Error(firstError);
     }
 
@@ -619,8 +627,10 @@ resultsWrap.addEventListener('click', async (event) => {
 
     const done = await poll();
     if (!done) {
-      clearInterval(pollTimersByIndex[index]);
-      delete pollTimersByIndex[index];
+      if (pollTimersByIndex[index]) {
+        clearInterval(pollTimersByIndex[index]);
+        delete pollTimersByIndex[index];
+      }
       const timer = setInterval(async () => {
         try {
           const finished = await poll();
