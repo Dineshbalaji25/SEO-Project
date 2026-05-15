@@ -96,4 +96,24 @@ To allow the AI tool to "talk" to your Oscar site, add the `catalogue_api` app t
 
 ---
 
+## 🧭 SEO Operations Hub (New)
+
+The project now includes a unified **SEO Operations Hub** blueprint layer inside `ai_seo_tool`:
+
+- `GET /hub/` — dashboard view of platform goal, modules, strategies, workflow, phases, architecture, and KPIs.
+- `GET /api/hub/overview/` — machine-readable JSON for the same hub overview.
+
+This keeps `ai_seo_tool` as the orchestration core while exposing planned modules for:
+- Keyword research
+- On-page auditing
+- Technical SEO
+- Content optimization
+- Competitor intelligence
+- Rank tracking
+- Backlink monitoring
+- Local SEO
+- Analytics and attribution
+
+---
+
 Developed for **thotfy** e-commerce. License: Private.

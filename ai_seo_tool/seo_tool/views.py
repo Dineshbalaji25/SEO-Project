@@ -22,6 +22,7 @@ import logging
 import uuid
 
 from django.core.cache import cache
+from django.contrib.auth.decorators import login_required
 import docx
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
@@ -30,7 +31,7 @@ from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 
-from .services import ClaudeServiceError, generate_seo_content
+from .services import ClaudeServiceError, generate_seo_content, get_hub_overview
 from .tasks import cache_image, run_seo_pipeline
 
 logger = logging.getLogger(__name__)
@@ -271,3 +272,29 @@ class DownloadDocxView(View):
         )
         response["Content-Disposition"] = f'attachment; filename="SEO_{task_id[:8]}.docx"'
         return response
+
+
+@method_decorator(login_required, name='dispatch')
+class HubOverviewView(View):
+    """
+    GET /hub/
+
+    Render the SEO Operations Hub overview page that consolidates platform modules,
+    strategy workflows, implementation phases, architecture, and success metrics.
+    """
+
+    def get(self, request):
+        overview = get_hub_overview()
+        return render(request, "seo_tool/hub_overview.html", {"hub": overview})
+
+
+@method_decorator(login_required, name='dispatch')
+class HubOverviewApiView(View):
+    """
+    GET /api/hub/overview/
+
+    Return machine-readable SEO Operations Hub overview data for frontend/API clients.
+    """
+
+    def get(self, request):
+        return JsonResponse(get_hub_overview())
