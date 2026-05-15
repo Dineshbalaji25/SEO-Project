@@ -196,8 +196,8 @@ def _parse_and_validate(raw: str) -> SEOContent:
 
 def _is_non_retryable_auth_error(exc: Exception) -> bool:
     status_code = getattr(exc, "status_code", None)
-    if status_code is not None:
-        return status_code == 401
+    if status_code == 401:
+        return True
 
     message = str(exc).lower()
     return "error code: 401" in message or "user not found" in message
